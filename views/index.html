@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AgriMandi Connect</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <h1>AgriMandi Connect</h1>
+    <nav id="main-nav">
+      <a href="#" data-page="home" class="nav-link">Home</a>
+      <a href="#" data-page="mandi" class="nav-link">Mandi Prices</a>
+      <a href="#" data-page="commodities" class="nav-link">Commodities</a>
+      <a href="#" data-page="schemes" class="nav-link">Schemes</a>
+      <a href="#" data-page="advisory" class="nav-link">Advisory</a>
+      <a href="#" data-page="buyer" class="nav-link">Buyer Connect</a>
+    </nav>
+    <div id="auth-area" class="auth-area">
+      <button id="btn-show-login" class="btn small">Login / Register</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- HOME page -->
+    <section id="page-home" class="page card">
+      <h2>Gallery & Overview</h2>
+      <div id="carousel" class="carousel">
+        <div class="carousel-track" id="carousel-track"></div>
+        <div class="carousel-controls">
+          <button id="prev-btn" class="btn small">◀</button>
+          <button id="next-btn" class="btn small">▶</button>
+        </div>
+      </div>
+
+      <!-- Weather & Advice tile is now inside home page only -->
+      <div class="mt-sm">
+        <h3>Weather & Farmer Advice</h3>
+        <div class="weather-row">
+          <div id="weather-tile" class="weather-tile"><p class="muted">Loading weather…</p></div>
+          <div id="advice-tile" class="advice-tile"><p class="muted">Advice will appear here.</p></div>
+        </div>
+      </div>
+
+      <footer class="card mt-sm">
+        <h4>Demo details</h4>
+        <p>
+          This is demo footer content — replace with your real contact and legal info.
+        </p>
+        <ul>
+          <li>Demo contact: +91 99999 99999</li>
+          <li>Demo email: demo@example.com</li>
+          <li>Demo address: Pune, Maharashtra</li>
+        </ul>
+      </footer>
+    </section>
+
+    <!-- MANDI page -->
+    <section id="page-mandi" class="page card hidden">
+      <h2>Mandi Prices</h2>
+      <div class="filters-row">
+        <label>State:
+          <select id="filter-state">
+            <option value="">All</option>
+            <option value="Maharashtra">Maharashtra</option>
+            <option value="Karnataka">Karnataka</option>
+            <option value="Punjab">Punjab</option>
+          </select>
+        </label>
+        <label>Crop:
+          <select id="filter-crop">
+            <option value="">All</option>
+            <option value="Wheat">Wheat</option>
+            <option value="Rice">Rice</option>
+            <option value="Onion">Onion</option>
+            <option value="Potato">Potato</option>
+          </select>
+        </label>
+        <button id="mandi-filter-btn" class="btn small">Search</button>
+      </div>
+      <div id="mandi-list"></div>
+    </section>
+
+    <!-- COMMODITIES page -->
+    <section id="page-commodities" class="page card hidden">
+      <h2>Commodities (live)</h2>
+      <div id="commodities-list"></div>
+    </section>
+
+    <!-- SCHEMES page -->
+    <section id="page-schemes" class="page card hidden">
+      <h2>Government Schemes</h2>
+      <p class="muted">Placeholder for schemes information. Replace with real content.</p>
+      <ul>
+        <li>Scheme A — description</li>
+        <li>Scheme B — description</li>
+        <li>Scheme C — description</li>
+      </ul>
+    </section>
+
+    <!-- ADVISORY page -->
+    <section id="page-advisory" class="page card hidden">
+      <h2>Advisory</h2>
+      <p class="muted">Placeholder for agronomy and advisory content. Replace with real advisories.</p>
+      <ol>
+        <li>Advisory 1 — short guidance</li>
+        <li>Advisory 2 — short guidance</li>
+        <li>Advisory 3 — short guidance</li>
+      </ol>
+    </section>
+
+    <!-- BUYER page -->
+    <section id="page-buyer" class="page card hidden">
+      <h2>Buyer Connect</h2>
+
+      <div id="buyer-notice" class="muted">You must log in as a <strong>buyer</strong> to create requests.</div>
+
+      <form id="buyer-form" class="hidden">
+        <label>
+          Crop
+          <input name="crop" id="buyer-crop" required />
+        </label>
+        <label>
+          Quantity (kg)
+          <input name="quantity" id="buyer-quantity" type="number" required />
+        </label>
+        <label>
+          Price / unit
+          <input name="price" id="buyer-price" type="number" />
+        </label>
+        <label>
+          Contact
+          <input name="contact" id="buyer-contact" />
+        </label>
+        <div class="form-actions">
+          <button id="buyer-submit" class="btn">Send Request</button>
+        </div>
+      </form>
+
+      <div id="my-requests" class="mt-sm"></div>
+
+      <hr />
+      <div id="farmer-controls" class="hidden">
+        <h3 class="mt-0">For Farmers / Admins</h3>
+        <div>
+          <button id="load-all-requests" class="btn small">Load Pending Requests</button>
+          <div id="all-requests" class="mt-sm"></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Auth Modal -->
+  <div id="auth-modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-body card">
+      <h3 id="auth-title">Login</h3>
+      <form id="auth-form" data-mode="login">
+        <label>
+          Email
+          <input type="email" id="auth-email" required />
+        </label>
+        <label>
+          Password
+          <input type="password" id="auth-password" required />
+        </label>
+        <label id="auth-name-row" class="hidden">
+          Name
+          <input id="auth-name" />
+        </label>
+        <label id="auth-role-row" class="hidden">
+          Role
+          <select id="auth-role">
+            <option value="buyer" selected>Buyer</option>
+            <option value="farmer">Farmer</option>
+            <!-- admin option removed from UI to avoid public admin creation -->
+          </select>
+        </label>
+
+        <div class="form-actions">
+          <button type="submit" class="btn" id="auth-submit">Login</button>
+          <button type="button" id="switch-auth-mode" class="btn ghost">Register</button>
+          <button type="button" id="close-auth" class="btn ghost">Close</button>
+        </div>
+
+        <div id="auth-message" class="muted mt-sm"></div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/app.js" defer></script>
+</body>
+</html>
