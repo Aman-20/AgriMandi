@@ -1,10 +1,10 @@
 // public/js/app.js
 const API_ROOT = '/api';
 const GALLERY_IMAGES = [
-  '/images/img1.jpg',
-  '/images/img2.jpg',
-  '/images/img3.jpg',
-  '/images/img4.jpg'
+  'https://res.cloudinary.com/dp55vvd7j/image/upload/v1752517674/userFiles/bsrww3j7ay37ffojvluu.jpg',
+  'https://res.cloudinary.com/dp55vvd7j/image/upload/v1752846509/fakeauthenticator/xwxmbs9dzbkvpehdnkhy.jpg',
+  'https://res.cloudinary.com/dp55vvd7j/image/upload/v1741255926/cld-sample-5.jpg',
+  'https://res.cloudinary.com/dp55vvd7j/image/upload/v1741255924/samples/coffee.jpg'
 ];
 const FALLBACK_IMAGE = '/images/fallback.png';
 
