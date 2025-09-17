@@ -23,7 +23,7 @@
   </header>
 
   <main class="container">
-    <!-- HOME page -->
+    <!-- HOME -->
     <section id="page-home" class="page card">
       <h2>Gallery & Overview</h2>
       <div id="carousel" class="carousel">
@@ -34,20 +34,21 @@
         </div>
       </div>
 
-      <!-- Weather & Advice tile is now inside home page only -->
       <div class="mt-sm">
         <h3>Weather & Farmer Advice</h3>
         <div class="weather-row">
           <div id="weather-tile" class="weather-tile"><p class="muted">Loading weather…</p></div>
           <div id="advice-tile" class="advice-tile"><p class="muted">Advice will appear here.</p></div>
         </div>
+        <div class="mt-sm">
+          <button id="weather-update-btn" class="btn small">Update Weather</button>
+          <span id="weather-status" class="muted small" style="margin-left:8px;"></span>
+        </div>
       </div>
 
       <footer class="card mt-sm">
         <h4>Demo details</h4>
-        <p>
-          This is demo footer content — replace with your real contact and legal info.
-        </p>
+        <p>Replace with your real contact and legal info.</p>
         <ul>
           <li>Demo contact: +91 99999 99999</li>
           <li>Demo email: demo@example.com</li>
@@ -56,7 +57,7 @@
       </footer>
     </section>
 
-    <!-- MANDI page -->
+    <!-- MANDI -->
     <section id="page-mandi" class="page card hidden">
       <h2>Mandi Prices</h2>
       <div class="filters-row">
@@ -79,77 +80,114 @@
         </label>
         <button id="mandi-filter-btn" class="btn small">Search</button>
       </div>
-      <div id="mandi-list"></div>
+      <div id="mandi-list">Loading mandi prices…</div>
     </section>
 
-    <!-- COMMODITIES page -->
+    <!-- COMMODITIES -->
     <section id="page-commodities" class="page card hidden">
       <h2>Commodities (live)</h2>
-      <div id="commodities-list"></div>
+      <div id="commodities-list">Loading commodities…</div>
     </section>
 
-    <!-- SCHEMES page -->
+    <!-- SCHEMES -->
     <section id="page-schemes" class="page card hidden">
       <h2>Government Schemes</h2>
-      <p class="muted">Placeholder for schemes information. Replace with real content.</p>
-      <ul>
-        <li>Scheme A — description</li>
-        <li>Scheme B — description</li>
-        <li>Scheme C — description</li>
-      </ul>
+      <p class="muted">Placeholder.</p>
     </section>
 
-    <!-- ADVISORY page -->
+    <!-- ADVISORY -->
     <section id="page-advisory" class="page card hidden">
       <h2>Advisory</h2>
-      <p class="muted">Placeholder for agronomy and advisory content. Replace with real advisories.</p>
-      <ol>
-        <li>Advisory 1 — short guidance</li>
-        <li>Advisory 2 — short guidance</li>
-        <li>Advisory 3 — short guidance</li>
-      </ol>
+      <p class="muted">Placeholder.</p>
     </section>
 
-    <!-- BUYER page -->
+    <!-- BUYER -->
     <section id="page-buyer" class="page card hidden">
       <h2>Buyer Connect</h2>
 
       <div id="buyer-notice" class="muted">You must log in as a <strong>buyer</strong> to create requests.</div>
 
       <form id="buyer-form" class="hidden">
-        <label>
-          Crop
-          <input name="crop" id="buyer-crop" required />
-        </label>
-        <label>
-          Quantity (kg)
-          <input name="quantity" id="buyer-quantity" type="number" required />
-        </label>
-        <label>
-          Price / unit
-          <input name="price" id="buyer-price" type="number" />
-        </label>
-        <label>
-          Contact
-          <input name="contact" id="buyer-contact" />
-        </label>
-        <div class="form-actions">
-          <button id="buyer-submit" class="btn">Send Request</button>
-        </div>
+        <label>Crop <input name="crop" id="buyer-crop" required /></label>
+        <label>Quantity (kg) <input name="quantity" id="buyer-quantity" type="number" required /></label>
+        <label>Contact <input name="contact" id="buyer-contact" /></label>
+        <div class="form-actions"><button id="buyer-submit" class="btn">Send Request</button></div>
       </form>
 
-      <div id="my-requests" class="mt-sm"></div>
+      <div id="buyer-areas">
+        <h3>My Requests</h3>
 
-      <hr />
+        <section id="requests-pending">
+          <h4>Pending</h4>
+          <div id="pending-list" class="mt-sm"></div>
+        </section>
+
+        <section id="requests-accepted">
+          <h4>Accepted</h4>
+          <div id="accepted-list" class="mt-sm"></div>
+        </section>
+
+        <section id="requests-awaiting">
+          <h4>Awaiting Your Confirmation</h4>
+          <div id="awaiting-list" class="mt-sm"></div>
+        </section>
+
+        <section id="requests-completed">
+          <h4>Completed</h4>
+          <div id="completed-list" class="mt-sm"></div>
+        </section>
+
+        <section id="requests-cancelled">
+          <h4>Cancelled</h4>
+          <div id="cancelled-list" class="mt-sm"></div>
+        </section>
+
+        <section id="requests-disputed">
+          <h4>Disputed</h4>
+          <div id="disputed-list" class="mt-sm"></div>
+        </section>
+      </div>
+
+      <!-- FARMER controls split into many sections -->
       <div id="farmer-controls" class="hidden">
-        <h3 class="mt-0">For Farmers / Admins</h3>
+        <h3 id="farmer-heading">Available Orders</h3>
         <div>
-          <button id="load-all-requests" class="btn small">Load Pending Requests</button>
-          <div id="all-requests" class="mt-sm"></div>
+          <button id="load-all-requests" class="btn small">Load Orders</button>
+        </div>
+
+        <div class="mt-sm">
+          <section id="farmer-available">
+            <h4>Available</h4>
+            <div id="farmer-available-list" class="mt-sm"></div>
+          </section>
+
+          <section id="farmer-accepted-sec">
+            <h4>Accepted</h4>
+            <div id="farmer-accepted-list" class="mt-sm"></div>
+          </section>
+
+          <section id="farmer-awaiting-sec">
+            <h4>Awaiting Buyer Confirmation</h4>
+            <div id="farmer-awaiting-list" class="mt-sm"></div>
+          </section>
+
+          <section id="farmer-completed-sec">
+            <h4>Completed</h4>
+            <div id="farmer-completed-list" class="mt-sm"></div>
+          </section>
+
+          <section id="farmer-cancelled-sec">
+            <h4>Cancelled</h4>
+            <div id="farmer-cancelled-list" class="mt-sm"></div>
+          </section>
+
+          <section id="farmer-disputed-sec">
+            <h4>Disputed</h4>
+            <div id="farmer-disputed-list" class="mt-sm"></div>
+          </section>
         </div>
       </div>
     </section>
-
   </main>
 
   <!-- Auth Modal -->
@@ -157,24 +195,15 @@
     <div class="modal-body card">
       <h3 id="auth-title">Login</h3>
       <form id="auth-form" data-mode="login">
-        <label>
-          Email
-          <input type="email" id="auth-email" required />
-        </label>
-        <label>
-          Password
-          <input type="password" id="auth-password" required />
-        </label>
-        <label id="auth-name-row" class="hidden">
-          Name
-          <input id="auth-name" />
-        </label>
-        <label id="auth-role-row" class="hidden">
-          Role
+        <label id="auth-email-row">Email <input type="email" id="auth-email" required /></label>
+        <label id="auth-password-row">Password <input type="password" id="auth-password" required /></label>
+
+        <label id="auth-name-row" class="hidden">Name <input id="auth-name" /></label>
+        <label id="auth-contact-row" class="hidden">Contact number <input id="auth-contact" /></label>
+        <label id="auth-role-row" class="hidden">Role
           <select id="auth-role">
             <option value="buyer" selected>Buyer</option>
             <option value="farmer">Farmer</option>
-            <!-- admin option removed from UI to avoid public admin creation -->
           </select>
         </label>
 
@@ -188,6 +217,10 @@
       </form>
     </div>
   </div>
+
+  <footer class="footer">
+    <small>© AgriMandi Connect</small>
+  </footer>
 
   <script src="/js/app.js" defer></script>
 </body>

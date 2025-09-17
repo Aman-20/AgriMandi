@@ -8,4 +8,11 @@ router.post('/register', authCtrl.register);
 router.post('/login', authCtrl.login);
 router.get('/me', verifyToken, authCtrl.me);
 
+// email verification
+router.get('/verify-email', authCtrl.verifyEmail);
+
+// forgot / reset
+router.post('/forgot-password', authCtrl.forgotPassword);
+router.post('/reset-password', authCtrl.resetPassword);
+
 module.exports = router;
