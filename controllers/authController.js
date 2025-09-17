@@ -112,25 +112,36 @@ async function verifyEmail(req, res) {
     const tokens = db.collection('tokens');
     const users = db.collection('users');
     const token = req.query.token;
-    if (!token) return res.status(400).send('token required');
+    if (!token) return res.status(400).send('<h2>Verification token missing</h2>');
 
     const rec = await tokens.findOne({ token, type: 'verify_email' });
-    if (!rec) return res.status(400).send('Invalid or expired token');
+    if (!rec) return res.status(400).send('<h2>Invalid or expired token</h2>');
 
     if (rec.expiresAt && rec.expiresAt < new Date()) {
-      return res.status(400).send('Token expired');
+      return res.status(400).send('<h2>Token expired</h2>');
     }
 
     await users.updateOne({ _id: rec.userId }, { $set: { isVerified: true } });
     await tokens.deleteOne({ _id: rec._id });
-    // You can redirect user to front-end UI
-    const front = process.env.APP_URL || 'http://localhost:3000';
-    return res.redirect(`${front}/?verified=1`);
+
+    // Simple HTML response so link opens a success page
+    return res.send(`
+      <!doctype html>
+      <html>
+        <head><meta charset="utf-8"><title>Email verified</title></head>
+        <body style="font-family: Arial, sans-serif; padding: 24px;">
+          <h1>Email Verified</h1>
+          <p>Your email has been verified. You can now return to the application and log in.</p>
+          <p><a href="${process.env.APP_URL || '/'}">Go to App</a></p>
+        </body>
+      </html>
+    `);
   } catch (err) {
     console.error('verifyEmail', err);
-    return res.status(500).send('Server error');
+    return res.status(500).send('<h2>Server error</h2>');
   }
 }
+
 
 async function login(req, res) {
   try {

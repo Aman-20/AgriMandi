@@ -132,35 +132,49 @@ async function handleAuthSubmit(e) {
 function applyAuthVisibility() {
   const user = authUser();
 
-  // Buyer
+  // Show/hide buyer areas
+  const buyerAreas = el('buyer-areas');
+  const buyerForm = el('buyer-form');
+  const buyerNotice = el('buyer-notice');
+
   if (user && user.role === 'buyer') {
-    if (el('buyer-form')) el('buyer-form').classList.remove('hidden');
-    if (el('buyer-notice')) el('buyer-notice').classList.add('hidden');
+    if (buyerForm) buyerForm.classList.remove('hidden');
+    if (buyerNotice) buyerNotice.classList.add('hidden');
+    if (buyerAreas) buyerAreas.style.display = '';
     loadMyRequests();
   } else {
-    if (el('buyer-form')) el('buyer-form').classList.add('hidden');
-    if (el('buyer-notice')) el('buyer-notice').classList.remove('hidden');
+    if (buyerForm) buyerForm.classList.add('hidden');
+    if (buyerNotice) buyerNotice.classList.remove('hidden');
+    if (buyerAreas) buyerAreas.style.display = 'none';   // 🟢 hide buyer section for non-buyers
     clearBuyerLists();
   }
 
-  // Farmer/Admin controls
+  // Show/hide farmer sections
   const farmerAllowed = user && (user.role === 'farmer' || user.role === 'admin');
   const farmerControls = el('farmer-controls');
   if (farmerControls) farmerControls.classList.toggle('hidden', !farmerAllowed);
 
-  // hide buyer-notice for other roles
-  if (user && user.role !== 'buyer') {
-    if (el('buyer-notice')) el('buyer-notice').style.display = 'none';
-  } else {
-    if (el('buyer-notice')) el('buyer-notice').style.display = '';
+  if (farmerAllowed) {
+    loadFarmerSections(); // 🟢 auto-load accepted/completed/etc sections
   }
 }
 
+
+// function clearBuyerLists() {
+//   ['pending-list','accepted-list','awaiting-list','completed-list','cancelled-list','disputed-list'].forEach(id => {
+//     if (el(id)) el(id).innerHTML = el(id) ? '<p class="muted">Please login to view your orders.</p>' : '';
+//   });
+// }
+
 function clearBuyerLists() {
-  ['pending-list','accepted-list','awaiting-list','completed-list','cancelled-list','disputed-list'].forEach(id => {
-    if (el(id)) el(id).innerHTML = el(id) ? '<p class="muted">Please login to view your orders.</p>' : '';
-  });
+  const user = authUser();
+  if (user && user.role !== 'buyer') return; // 🟢 skip clearing when not buyer
+  ['pending-list','accepted-list','awaiting-list','completed-list','cancelled-list','disputed-list']
+    .forEach(id => {
+      if (el(id)) el(id).innerHTML = '<p class="muted">Please login to view your orders.</p>';
+    });
 }
+
 
 // BUYER: actions and list rendering
 async function handleBuyerSubmit(e) {
@@ -369,10 +383,95 @@ async function loadAllRequests() {
   }
 }
 
+
+// Load only pending (available) orders (called by button)
+async function loadAvailableRequests() {
+  if (!el('farmer-available-list')) return;
+  el('farmer-available-list').innerHTML = 'Loading available orders…';
+  try {
+    const res = await apiFetch('/buyers/requests?status=pending'); // server accepts status filter
+    const list = el('farmer-available-list');
+    list.innerHTML = '';
+    (res.requests || []).forEach(r => list.appendChild(renderRequestCardForFarmer(r)));
+    if (list.children.length === 0) list.innerHTML = '<p class="muted">No available orders.</p>';
+    // wire actions on loaded items (delegation elsewhere will pick them)
+  } catch (err) {
+    console.error('loadAvailableRequests err', err);
+    el('farmer-available-list').innerHTML = '<p class="muted">Failed to load available orders.</p>';
+  }
+}
+
+// Load accepted / awaiting / completed / cancelled / disputed — automatically when farmer/admin logs in
+async function loadFarmerSections() {
+  const user = authUser();
+  if (!user) {
+    // show please login
+    const ids = ['farmer-accepted-list','farmer-awaiting-list','farmer-completed-list','farmer-cancelled-list','farmer-disputed-list'];
+    ids.forEach(id => { if (el(id)) el(id).innerHTML = '<p class="muted">Please login to view orders.</p>'; });
+    return;
+  }
+
+  // We'll call the server multiple times for each status for clarity.
+  const fill = async (status, targetId, emptyText) => {
+    const target = el(targetId);
+    if (!target) return;
+    target.innerHTML = `Loading ${status || 'orders'}…`;
+    try {
+      const query = status ? `?status=${encodeURIComponent(status)}` : '';
+      const res = await apiFetch(`/buyers/requests${query}`);
+      target.innerHTML = '';
+      (res.requests || []).forEach(r => {
+        // For accepted/awaiting/completed/cancelled/disputed only show if assigned to this farmer or admin
+        if (status === 'pending') return; // skip pending
+        // the renderRequestCardForFarmer already filters UI per role when displayed in the correct bucket
+        target.appendChild(renderRequestCardForFarmer(r));
+      });
+      if (target.children.length === 0) target.innerHTML = `<p class="muted">${emptyText}</p>`;
+    } catch (err) {
+      console.error('fill section err', err);
+      target.innerHTML = `<p class="muted">Failed to load ${status || 'orders'}.</p>`;
+    }
+  };
+
+  // load each section
+  await fill('accepted', 'farmer-accepted-list', 'No accepted orders.');
+  await fill('completed_pending_buyer_confirmation', 'farmer-awaiting-list', 'No awaiting confirmation orders.');
+  await fill('completed', 'farmer-completed-list', 'No completed orders.');
+  await fill('cancelled', 'farmer-cancelled-list', 'No cancelled orders.');
+  await fill('disputed', 'farmer-disputed-list', 'No disputed orders.');
+}
+
+
+// delegate farmer action buttons
+document.addEventListener('click', async (e) => {
+  const btn = e.target.closest('button[data-action][data-id]');
+  if (!btn) return;
+  const id = btn.dataset.id;
+  const action = btn.dataset.action;
+  if (!confirm(`Are you sure to ${action.toUpperCase()} this request?`)) return;
+  try {
+    if (action === 'reassign') {
+      const farmerId = prompt('Enter farmer ID to assign:');
+      if (!farmerId) return;
+      await apiFetch(`/buyers/requests/${id}/reassign`, { method: 'POST', body: { farmerId } });
+    } else {
+      await apiFetch(`/buyers/requests/${id}`, { method: 'PATCH', body: { action } });
+    }
+    await loadFarmerSections();
+    await loadAvailableRequests();
+    await loadMyRequests();
+  } catch (err) {
+    alert(err.body?.error || 'Action failed');
+  }
+});
+
+
 // farmer card renderer (shows buyer & timestamps & action buttons appropriate to status)
+// Replace existing renderRequestCardForFarmer with this
 function renderRequestCardForFarmer(r) {
   const div = document.createElement('div');
   div.className = 'request-card';
+  const user = authUser(); // current logged-in user
   const created = r.createdAt ? new Date(r.createdAt).toLocaleString() : '';
   const buyerInfo = r.buyer ? `${r.buyer.name || r.buyer.email} (${r.buyer.contact || 'no contact'})` : 'Unknown buyer';
   const farmerAssigned = r.farmer ? `${r.farmer.name || r.farmer.email}` : '';
@@ -380,27 +479,45 @@ function renderRequestCardForFarmer(r) {
     <div class="muted small">Buyer: ${buyerInfo}</div>
     <div class="muted small">Created: ${created}</div>`;
   if (r.farmer) html += `<div class="muted small">Assigned: ${farmerAssigned}</div>`;
-  // status + timestamps
+
+  // helper: show admin-only controls
+  const isAdmin = user && user.role === 'admin';
+  const isAssignedFarmer = user && user.role === 'farmer' && r.farmer && (r.farmer._id === user.id);
+
   if (r.status === 'pending') {
     html += `<div class="muted small">Status: pending</div>`;
-    html += `<div class="mt-sm"><button class="btn small" data-action="accept" data-id="${r._id}">Accept</button></div>`;
+    // any farmer (or admin) can accept pending orders
+    if (user && (user.role === 'farmer' || isAdmin)) {
+      html += `<div class="mt-sm"><button class="btn small" data-action="accept" data-id="${r._id}">Accept</button></div>`;
+    }
   } else if (r.status === 'accepted') {
     html += `<div class="muted small">Status: accepted • Accepted at: ${r.acceptedAt ? new Date(r.acceptedAt).toLocaleString() : ''}</div>`;
-    html += `<div class="mt-sm"><button class="btn small" data-action="complete" data-id="${r._id}">Mark Completed</button> <button class="btn small ghost" data-action="cancel" data-id="${r._id}">Cancel</button></div>`;
+    // only assigned farmer or admin can mark complete/cancel
+    if (isAssignedFarmer || isAdmin) {
+      html += `<div class="mt-sm"><button class="btn small" data-action="complete" data-id="${r._id}">Mark Completed</button> <button class="btn small ghost" data-action="cancel" data-id="${r._id}">Cancel</button></div>`;
+    }
   } else if (r.status === 'completed_pending_buyer_confirmation') {
     html += `<div class="muted small">Status: awaiting buyer confirmation • Farmer completed at: ${r.completedAt ? new Date(r.completedAt).toLocaleString() : ''}</div>`;
-    html += `<div class="mt-sm"><button class="btn small ghost" data-action="cancel" data-id="${r._id}">Cancel</button></div>`;
+    // assigned farmer can cancel (if needed); admin can resolve
+    if (isAssignedFarmer) html += `<div class="mt-sm"><button class="btn small ghost" data-action="cancel" data-id="${r._id}">Cancel</button></div>`;
+    if (isAdmin) html += `<div class="mt-sm"><button class="btn small" data-action="force-complete" data-id="${r._id}">Force Complete</button> <button class="btn small ghost" data-action="cancel" data-id="${r._id}">Cancel</button></div>`;
   } else if (r.status === 'completed') {
     html += `<div class="muted small">Status: completed • Completed at: ${r.completedAt ? new Date(r.completedAt).toLocaleString() : ''} • Buyer confirmed at: ${r.buyerConfirmedAt ? new Date(r.buyerConfirmedAt).toLocaleString() : ''}</div>`;
   } else if (r.status === 'cancelled') {
     html += `<div class="muted small">Status: cancelled • Cancelled at: ${r.cancelledAt ? new Date(r.cancelledAt).toLocaleString() : ''} • By: ${r.cancelledBy || 'N/A'}</div>`;
   } else if (r.status === 'disputed') {
     html += `<div class="muted small">Status: disputed • Disputed at: ${r.disputedAt ? new Date(r.disputedAt).toLocaleString() : ''}</div><div class="muted small">Reason: ${r.disputeReason || 'N/A'}</div>`;
-    html += `<div class="mt-sm"><button class="btn small" data-action="resolve-complete" data-id="${r._id}">Resolve: Complete</button> <button class="btn small ghost" data-action="resolve-cancel" data-id="${r._id}">Resolve: Cancel</button> <button class="btn small ghost" data-action="reassign" data-id="${r._id}">Reassign</button></div>`;
+    // admin only: resolve; farmers should not see resolve buttons unless they are admin
+    if (isAdmin) {
+      html += `<div class="mt-sm"><button class="btn small" data-action="resolve-complete" data-id="${r._id}">Resolve: Complete</button> <button class="btn small ghost" data-action="resolve-cancel" data-id="${r._id}">Resolve: Cancel</button> <button class="btn small ghost" data-action="reassign" data-id="${r._id}">Reassign</button></div>`;
+    }
   }
+
   div.innerHTML = html;
   return div;
 }
+
+
 
 // CAROUSEL (unchanged)
 function buildCarousel(images) {
@@ -547,6 +664,8 @@ function wireEvents() {
   if (el('mandi-filter-btn')) el('mandi-filter-btn').onclick = () => { const state = el('filter-state').value; const crop = el('filter-crop').value; loadMandiPrices(state, crop); showPage('mandi'); };
   if (el('load-all-requests')) el('load-all-requests').onclick = loadAllRequests;
   if (el('weather-update-btn')) el('weather-update-btn').onclick = loadWeatherAndAdvice;
+  if (el('load-available-btn')) el('load-available-btn').onclick = loadAvailableRequests;
+
 }
 
 async function init() {
