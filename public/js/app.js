@@ -1,6 +1,6 @@
 // public/js/app.js (replace your existing file)
 const API_ROOT = '/api';
-const GALLERY_IMAGES = ['/images/img1.jpg','/images/img2.jpg','/images/img3.jpg','/images/img4.jpg'];
+const GALLERY_IMAGES = ['/images/img1.jpg', '/images/img2.jpg', '/images/img3.jpg', '/images/img4.jpg'];
 const FALLBACK_IMAGE = '/images/fallback.png';
 
 const el = id => document.getElementById(id);
@@ -8,6 +8,10 @@ const authToken = () => localStorage.getItem('am_token');
 const authUser = () => JSON.parse(localStorage.getItem('am_user') || 'null');
 const setAuth = (t, u) => { localStorage.setItem('am_token', t); localStorage.setItem('am_user', JSON.stringify(u)); };
 const clearAuth = () => { localStorage.removeItem('am_token'); localStorage.removeItem('am_user'); };
+
+// top-level (near other globals)
+let lastWeatherFetch = 0;
+const WEATHER_TTL = 1000 * 60 * 10; // 10 minutes cache
 
 async function apiFetch(path, opts = {}) {
   opts.headers = opts.headers || {};
@@ -17,12 +21,13 @@ async function apiFetch(path, opts = {}) {
   if (opts.body && typeof opts.body === 'object') opts.body = JSON.stringify(opts.body);
   const res = await fetch(`${API_ROOT}${path}`, opts);
   let body = {};
-  try { body = await res.json(); } catch (e) {}
+  try { body = await res.json(); } catch (e) { }
   if (!res.ok) throw { status: res.status, body };
   return body;
 }
 
 // NAV
+// showPage: only trigger weather fetch when arriving at home and only if stale
 function showPage(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
   document.querySelectorAll('.nav-link').forEach(a => a.classList.remove('active'));
@@ -31,13 +36,21 @@ function showPage(name) {
   const page = document.getElementById('page-' + name);
   if (page) page.classList.remove('hidden');
 
-  // Weather visible only on home
+  // Weather tile displayed only on home
   const isHome = (name === 'home');
   const weatherWrap = el('weather-tile')?.parentElement?.parentElement;
   const adviceWrap = el('advice-tile')?.parentElement?.parentElement;
   if (weatherWrap) weatherWrap.style.display = isHome ? 'flex' : 'none';
   if (adviceWrap) adviceWrap.style.display = isHome ? 'flex' : 'none';
-  if (isHome) loadWeatherAndAdvice();
+
+  // Only auto-load weather when arriving at home and the last fetch is stale
+  if (isHome) {
+    const now = Date.now();
+    if (!lastWeatherFetch || (now - lastWeatherFetch) > WEATHER_TTL) {
+      // do NOT block navigation — start fetching but don't spam UI
+      loadWeatherAndAdvice({ force: false }).catch(e => console.warn(e));
+    }
+  }
 }
 
 // AUTH UI + behavior
@@ -80,6 +93,13 @@ function setAuthMode(mode) {
   form.dataset.mode = mode;
   el('auth-title').textContent = mode === 'login' ? 'Login' : 'Register';
   el('auth-submit').textContent = mode === 'login' ? 'Login' : 'Create Account';
+  // after showing/hiding name/contact/role rows:
+  const forgotLink = el('forgot-link');
+  if (forgotLink) {
+    // show forgot only for login mode, hide it for register
+    forgotLink.style.display = (mode === 'login') ? '' : 'none';
+  }
+
   if (mode === 'login') {
     el('auth-name-row').classList.add('hidden');
     el('auth-contact-row').classList.add('hidden');
@@ -159,17 +179,10 @@ function applyAuthVisibility() {
   }
 }
 
-
-// function clearBuyerLists() {
-//   ['pending-list','accepted-list','awaiting-list','completed-list','cancelled-list','disputed-list'].forEach(id => {
-//     if (el(id)) el(id).innerHTML = el(id) ? '<p class="muted">Please login to view your orders.</p>' : '';
-//   });
-// }
-
 function clearBuyerLists() {
   const user = authUser();
   if (user && user.role !== 'buyer') return; // 🟢 skip clearing when not buyer
-  ['pending-list','accepted-list','awaiting-list','completed-list','cancelled-list','disputed-list']
+  ['pending-list', 'accepted-list', 'awaiting-list', 'completed-list', 'cancelled-list', 'disputed-list']
     .forEach(id => {
       if (el(id)) el(id).innerHTML = '<p class="muted">Please login to view your orders.</p>';
     });
@@ -197,7 +210,7 @@ async function loadMyRequests() {
   const user = authUser();
   if (!user) {
     // not logged in: show please login messages in each buyer section
-    ['pending-list','accepted-list','awaiting-list','completed-list','cancelled-list','disputed-list'].forEach(id => {
+    ['pending-list', 'accepted-list', 'awaiting-list', 'completed-list', 'cancelled-list', 'disputed-list'].forEach(id => {
       if (el(id)) el(id).innerHTML = '<p class="muted">Please login to view your orders.</p>';
     });
     return;
@@ -296,7 +309,7 @@ async function loadAllRequests() {
   const user = authUser();
   if (!user) {
     // not logged in
-    const ids = ['farmer-available-list','farmer-accepted-list','farmer-awaiting-list','farmer-completed-list','farmer-cancelled-list','farmer-disputed-list'];
+    const ids = ['farmer-available-list', 'farmer-accepted-list', 'farmer-awaiting-list', 'farmer-completed-list', 'farmer-cancelled-list', 'farmer-disputed-list'];
     ids.forEach(id => { if (el(id)) el(id).innerHTML = '<p class="muted">Please login to view orders.</p>'; });
     return;
   }
@@ -377,7 +390,7 @@ async function loadAllRequests() {
   } catch (err) {
     console.error('loadAllRequests err', err);
     // set friendly messages when error
-    ['farmer-available-list','farmer-accepted-list','farmer-awaiting-list','farmer-completed-list','farmer-cancelled-list','farmer-disputed-list'].forEach(id => {
+    ['farmer-available-list', 'farmer-accepted-list', 'farmer-awaiting-list', 'farmer-completed-list', 'farmer-cancelled-list', 'farmer-disputed-list'].forEach(id => {
       if (el(id)) el(id).innerHTML = '<p class="muted">Failed to load orders.</p>';
     });
   }
@@ -406,7 +419,7 @@ async function loadFarmerSections() {
   const user = authUser();
   if (!user) {
     // show please login
-    const ids = ['farmer-accepted-list','farmer-awaiting-list','farmer-completed-list','farmer-cancelled-list','farmer-disputed-list'];
+    const ids = ['farmer-accepted-list', 'farmer-awaiting-list', 'farmer-completed-list', 'farmer-cancelled-list', 'farmer-disputed-list'];
     ids.forEach(id => { if (el(id)) el(id).innerHTML = '<p class="muted">Please login to view orders.</p>'; });
     return;
   }
@@ -585,11 +598,19 @@ async function loadCommodities() {
 }
 
 // WEATHER w/ update status text
-let lastWeatherFetch = 0;
-async function loadWeatherAndAdvice() {
+async function loadWeatherAndAdvice(options = { force: false }) {
   const statusEl = el('weather-status');
-  if (statusEl) statusEl.textContent = 'Updating…';
   const updateBtn = el('weather-update-btn');
+
+  if (!options.force) {
+    // If we already fetched and data is fresh, just return
+    if (lastWeatherFetch && (Date.now() - lastWeatherFetch) < WEATHER_TTL) {
+      if (statusEl) statusEl.textContent = 'Showing recent weather';
+      return;
+    }
+  }
+
+  if (statusEl) { statusEl.textContent = 'Updating…'; }
   if (updateBtn) { updateBtn.disabled = true; updateBtn.textContent = 'Updating…'; }
 
   const defaultCoords = { lat: 18.5204, lon: 73.8567 };
@@ -597,16 +618,16 @@ async function loadWeatherAndAdvice() {
   try {
     const pos = await new Promise((res, rej) => navigator.geolocation.getCurrentPosition(res, rej, { timeout: 6000 }));
     coords = { lat: pos.coords.latitude, lon: pos.coords.longitude };
-  } catch (_) { /* fallback */ }
+  } catch (_) { /* ignore, use default */ }
 
   try {
     const r = await fetch(`/api/external-weather?lat=${coords.lat}&lon=${coords.lon}`);
-    if (!r.ok) throw new Error('weather proxy failed');
+    if (!r.ok) throw new Error('weather fetch failed');
     const data = await r.json();
     renderWeatherTile(data);
     renderAdviceTile(data);
-    if (statusEl) statusEl.textContent = 'Weather updated';
     lastWeatherFetch = Date.now();
+    if (statusEl) statusEl.textContent = 'Weather updated';
   } catch (err) {
     console.error('weather err', err);
     if (el('weather-tile')) el('weather-tile').innerHTML = '<p class="muted">Weather unavailable.</p>';
@@ -615,7 +636,7 @@ async function loadWeatherAndAdvice() {
   } finally {
     if (updateBtn) {
       updateBtn.disabled = false;
-      setTimeout(() => { updateBtn.textContent = 'Update Weather'; if (statusEl && lastWeatherFetch) statusEl.textContent = 'Updated'; }, 900);
+      updateBtn.textContent = 'Update Weather';
     }
   }
 }
@@ -645,12 +666,12 @@ function renderAdviceTile(weather) {
   const rain = weather.rain?.['1h'] ?? 0;
   const desc = (weather.weather?.[0]?.main || '').toLowerCase();
   const suggestions = []; const tips = [];
-  if (desc.includes('rain') || rain > 0) { suggestions.push('Rice','Sugarcane','Maize'); tips.push('Expect wet fields — delay harvesting.'); }
-  else if (temp >= 30) { suggestions.push('Groundnut','Sorghum','Cotton'); tips.push('High temps — irrigate early morning & late evening.'); }
-  else if (temp >= 20 && temp < 30) { suggestions.push('Wheat','Chickpea','Mustard'); tips.push('Good conditions — consider short-duration pulses.'); }
-  else { suggestions.push('Leafy vegetables','Potatoes'); tips.push('Cool — protect seedlings.'); }
+  if (desc.includes('rain') || rain > 0) { suggestions.push('Rice', 'Sugarcane', 'Maize'); tips.push('Expect wet fields — delay harvesting.'); }
+  else if (temp >= 30) { suggestions.push('Groundnut', 'Sorghum', 'Cotton'); tips.push('High temps — irrigate early morning & late evening.'); }
+  else if (temp >= 20 && temp < 30) { suggestions.push('Wheat', 'Chickpea', 'Mustard'); tips.push('Good conditions — consider short-duration pulses.'); }
+  else { suggestions.push('Leafy vegetables', 'Potatoes'); tips.push('Cool — protect seedlings.'); }
   if (rain > 5) tips.push(`Recent rain ${rain}mm — reduce irrigation.`); if (temp > 35) tips.push('Heat stress likely.');
-  adv.innerHTML = `<h4 class="mt-0">Advice</h4><div class="chip-row">${suggestions.slice(0,4).map(s=>`<span class="chip">${s}</span>`).join('')}</div><div class="mt-sm"><strong>Tips:</strong><ul>${tips.map(t=>`<li>${t}</li>`).join('')}</ul></div>`;
+  adv.innerHTML = `<h4 class="mt-0">Advice</h4><div class="chip-row">${suggestions.slice(0, 4).map(s => `<span class="chip">${s}</span>`).join('')}</div><div class="mt-sm"><strong>Tips:</strong><ul>${tips.map(t => `<li>${t}</li>`).join('')}</ul></div>`;
 }
 
 // WIRING
@@ -663,8 +684,9 @@ function wireEvents() {
   if (el('buyer-form')) el('buyer-form').addEventListener('submit', handleBuyerSubmit);
   if (el('mandi-filter-btn')) el('mandi-filter-btn').onclick = () => { const state = el('filter-state').value; const crop = el('filter-crop').value; loadMandiPrices(state, crop); showPage('mandi'); };
   if (el('load-all-requests')) el('load-all-requests').onclick = loadAllRequests;
-  if (el('weather-update-btn')) el('weather-update-btn').onclick = loadWeatherAndAdvice;
+  // if (el('weather-update-btn')) el('weather-update-btn').onclick = loadWeatherAndAdvice;
   if (el('load-available-btn')) el('load-available-btn').onclick = loadAvailableRequests;
+  if (el('weather-update-btn')) el('weather-update-btn').onclick = () => loadWeatherAndAdvice({ force: true });
 
 }
 

@@ -150,14 +150,14 @@
 
       <!-- FARMER controls split into many sections -->
       <div id="farmer-controls" class="hidden">
-        <h3 id="farmer-heading">Available Orders</h3>
+        <h3 id="farmer-heading">Open Requests</h3>
         <div>
           <button id="load-available-btn" class="btn small">Load Orders</button>
         </div>
-
+       <!--New Requests here-->
         <div class="mt-sm">
           <section id="farmer-available">
-            <h4>Available</h4>
+            <h4></h4>
             <div id="farmer-available-list" class="mt-sm"></div>
           </section>
 
@@ -197,6 +197,12 @@
       <form id="auth-form" data-mode="login">
         <label id="auth-email-row">Email <input type="email" id="auth-email" required /></label>
         <label id="auth-password-row">Password <input type="password" id="auth-password" required /></label>
+
+
+        <div class="muted small" style="margin-bottom:8px">
+          <a href="/forgot-password.html" id="forgot-link">Forgot password?</a>
+        </div>
+        
 
         <label id="auth-name-row" class="hidden">Name <input id="auth-name" /></label>
         <label id="auth-contact-row" class="hidden">Contact number <input id="auth-contact" /></label>
