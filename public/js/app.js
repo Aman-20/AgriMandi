@@ -1,6 +1,7 @@
 // public/js/app.js (replace your existing file)
 const API_ROOT = '/api';
-const GALLERY_IMAGES = ['/images/img1.jpg', '/images/img2.jpg', '/images/img3.jpg', '/images/img4.jpg'];
+const GALLERY_IMAGES = ['https://res.cloudinary.com/dp55vvd7j/image/upload/v1758301493/farmer-banner_im2nez.jpg', 'https://res.cloudinary.com/dp55vvd7j/image/upload/v1758301491/Template-landscape-of-agriculture-and-farming-on-banner-8-large_rpvtor.jpg',
+'https://res.cloudinary.com/dp55vvd7j/image/upload/v1758301487/image1_ttsey7.webp', 'https://res.cloudinary.com/dp55vvd7j/image/upload/v1758301487/Indian-Farmer-Banner_j1346y.jpg'];
 const FALLBACK_IMAGE = '/images/fallback.png';
 
 const el = id => document.getElementById(id);
